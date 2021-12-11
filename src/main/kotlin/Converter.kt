@@ -10,7 +10,7 @@ import java.util.*
 import javax.net.ssl.HttpsURLConnection
 import kotlin.system.exitProcess
 
-class Converter(private val amount: Int) {
+class Converter(private val log: Boolean = true) {
     private val baseUrl = "https://openexchangerates.org/api/latest.json"
     private val token: String =
         try {
@@ -21,7 +21,7 @@ class Converter(private val amount: Int) {
             exitProcess(0)
         }
 
-    fun request() {
+    fun request(amount: Int): String {
         val url = URL("${baseUrl}?app_id=${token}&base=USD&symbols=EUR")
         val connection = url.openConnection() as HttpsURLConnection
         connection.requestMethod = "GET"
@@ -29,19 +29,25 @@ class Converter(private val amount: Int) {
 
         try {
             val response: Response = jacksonObjectMapper().readValue(inputStream)
-            printRes(response)
+            val res = getRes(amount, response)
+            if (log)
+                println(res)
+            return res
+
         } catch (e: JacksonException) {
-            println("Ошибка при конвертации ответа от сервера.")
-            println(inputStream.bufferedReader().readText())
+            if (log) {
+                println("Ошибка при конвертации ответа от сервера.")
+                println(inputStream.bufferedReader().readText())
+            }
             exitProcess(0)
         }
     }
 
-    private fun printRes(response: Response) {
+    private fun getRes(amount: Int, response: Response): String {
         val euro = amount * response.rates["EUR"]!!
         val sdf = SimpleDateFormat("HH:mm dd.MM.yyyy")
-        val time = sdf.format(Date(response.timestamp * 1000))
-        println("$amount USD = $euro EUR (на $time)")
+        val t = sdf.format(Date(response.timestamp * 1000))
+        return "$amount USD = $euro EUR (for $t)"
     }
 }
 
