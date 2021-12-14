@@ -8,43 +8,66 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.net.ssl.HttpsURLConnection
-import kotlin.system.exitProcess
 
 class Converter(private val log: Boolean = true) {
     private val baseUrl = "https://openexchangerates.org/api/latest.json"
-    private val token: String =
-        try {
-            val buffReader = File("token.txt").bufferedReader()
-            buffReader.readLine()
-        } catch (e: FileNotFoundException) {
+    private val token: String = readToken("token.txt") ?: ""
+
+    fun request(amount: Double, token: String = this.token): String? {
+        if (token.isEmpty()) {
             println("The file \"token.txt\" with the token for openexchangerates.org was not found.")
-            exitProcess(0)
+            return null
         }
 
-    fun request(amount: Int): String {
         val url = URL("${baseUrl}?app_id=${token}&base=USD&symbols=EUR")
         val connection = url.openConnection() as HttpsURLConnection
         connection.requestMethod = "GET"
-        val inputStream = connection.inputStream
+
+        if (connection.responseCode != 200) {
+            if (log) {
+                println("Ошибка ${connection.responseCode}.")
+                println(connection.errorStream.bufferedReader().readText())
+            }
+            return null
+        }
 
         try {
+            val inputStream = connection.inputStream
             val response: Response = jacksonObjectMapper().readValue(inputStream)
             val res = getRes(amount, response)
             if (log)
                 println(res)
             return res
-
         } catch (e: JacksonException) {
             if (log) {
                 println("Ошибка при конвертации ответа от сервера.")
-                println(inputStream.bufferedReader().readText())
+                println(connection.errorStream.bufferedReader().readText())
             }
-            exitProcess(0)
+            return null
+        } catch (e: NoSuchElementException) {
+            if (log) {
+                println("Сервер не выдал ответ для EUR.")
+                println(connection.errorStream.bufferedReader().readText())
+            }
+            return null
         }
     }
 
-    private fun getRes(amount: Int, response: Response): String {
-        val euro = amount * response.rates["EUR"]!!
+    fun readToken(path: String): String? {
+        return try {
+            val buffReader = File(path).bufferedReader()
+            val res = buffReader.readLine()
+            buffReader.close()
+            res
+        } catch (e: FileNotFoundException) {
+            println("The file \"token.txt\" with the token for openexchangerates.org was not found.")
+            null
+        }
+    }
+
+    fun getRes(amount: Double, response: Response): String {
+        val rate = response.rates["EUR"] ?: throw NoSuchElementException()
+        val euro = amount * rate
         val sdf = SimpleDateFormat("HH:mm dd.MM.yyyy")
         val t = sdf.format(Date(response.timestamp * 1000))
         return "$amount USD = $euro EUR (for $t)"
