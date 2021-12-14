@@ -1,5 +1,8 @@
 # USD to EUR converter
 
+![master_branch_testing](https://github.com/Juniell/USD-EUR-converter/actions/workflows/testingGradle.yml/badge.svg?branch=master)
+![develop_branch_testing](https://github.com/Juniell/USD-EUR-converter/actions/workflows/testingGradle.yml/badge.svg?branch=develop)
+
 ## Description
 
 This service allows you to convert USD to EUR.
