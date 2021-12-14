@@ -14,6 +14,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.junit.jupiter:junit-jupiter:5.8.2")
     testImplementation(kotlin("test"))
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.0")
 }

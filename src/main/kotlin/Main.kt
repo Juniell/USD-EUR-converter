@@ -16,12 +16,17 @@ fun main() {
             exchange.sendResponseHeaders(400, -1)
             exchange.close()
         } else {
-            val res = converter.request(if (amount < 0) 1 else amount)
-            exchange.sendResponseHeaders(200, res.toByteArray().size.toLong())
-            val output = exchange.responseBody
-            output.write(res.toByteArray())
-            output.flush()
-            exchange.close()
+            val res = converter.request(if (amount <= 0.0) 1.0 else amount)
+            if (res == null) {
+                exchange.sendResponseHeaders(500, -1)
+                exchange.close()
+            } else {
+                exchange.sendResponseHeaders(200, res.toByteArray().size.toLong())
+                val output = exchange.responseBody
+                output.write(res.toByteArray())
+                output.flush()
+                exchange.close()
+            }
         }
     }
 
@@ -30,7 +35,7 @@ fun main() {
     println("Сервер запущен")
 }
 
-fun parseQuery(query: String?): Int? {
+fun parseQuery(query: String?): Double? {
     if (query.isNullOrEmpty()) return null
     val args = query.split("&")
     if (args.size != 1) return null
@@ -38,5 +43,5 @@ fun parseQuery(query: String?): Int? {
     val amountArg = args.first().split("=")
     if (amountArg.size != 2 || amountArg.first() != "amount") return null
 
-    return amountArg[1].toInt()
+    return amountArg[1].toDoubleOrNull()
 }
